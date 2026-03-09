@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CKD Clinical Prediction Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body>
+    <div class="bg-layer"></div>
+    <main class="container shell">
+      <header class="hero card">
+        <div>
+          <p class="eyebrow">Nephrology Decision Support</p>
+          <h1>Chronic Kidney Disease Prediction Portal</h1>
+          <p class="lead">Evidence-oriented screening interface with strict validation and model-backed risk estimation.</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <span>Model Features</span>
+            <strong>{{ features|length }}</strong>
+          </div>
+          <div class="stat">
+            <span>Status</span>
+            <strong class="ok">Operational</strong>
+          </div>
+        </div>
+      </header>
+
+      {% if errors %}
+      <section class="card error-card">
+        <h2>Input Validation Errors</h2>
+        <ul>
+          {% for err in errors %}
+          <li>{{ err }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+
+      {% if result %}
+      <section class="card result-card">
+        <div class="result-head">
+          <h2>Prediction Report</h2>
+          <span class="badge {{ 'danger' if result.prediction_raw == 0 else 'safe' }}">{{ result.risk_level }} Risk</span>
+        </div>
+        <p class="prediction">{{ result.prediction_label }}</p>
+        <div class="metrics grid-metrics">
+          <article>
+            <span>CKD Probability</span>
+            <strong>{{ '%.2f'|format(result.ckd_probability * 100) }}%</strong>
+          </article>
+          <article>
+            <span>No CKD Probability</span>
+            <strong>{{ '%.2f'|format(result.non_ckd_probability * 100) }}%</strong>
+          </article>
+          <article>
+            <span>Model Confidence</span>
+            <strong>{{ '%.2f'|format(result.confidence * 100) }}%</strong>
+          </article>
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="layout">
+        <section class="card form-card">
+          <h2>Patient Clinical Inputs</h2>
+          <form method="post" action="/predict" class="grid" novalidate>
+            {% for feature in features %}
+            <label class="field">
+              <span>{{ feature.label }}</span>
+              <input
+                type="number"
+                name="{{ feature.key }}"
+                min="{{ feature.min_value }}"
+                max="{{ feature.max_value }}"
+                step="{{ feature.step }}"
+                value="{{ form_data.get(feature.key, feature.default) }}"
+                required
+              />
+              <small>{{ feature.help_text }}</small>
+            </label>
+            {% endfor %}
+            <button type="submit">Generate Prediction</button>
+          </form>
+        </section>
+        <aside class="card side-panel">
+          <h3>Model Notes</h3>
+          <p>This interface uses your trained classifier artifact (`model.pkl`) with strict server-side input checks.</p>
+          {% if metrics %}
+          <div class="model-metrics">
+            <p><span>Test Accuracy</span><strong>{{ '%.2f'|format(metrics.get('test_accuracy', 0) * 100) }}%</strong></p>
+            <p><span>Train Size</span><strong>{{ metrics.get('train_size', '-') }}</strong></p>
+            <p><span>Test Size</span><strong>{{ metrics.get('test_size', '-') }}</strong></p>
+          </div>
+          {% else %}
+          <p class="muted">No persisted training metrics found yet. Run `python train_model.py` to generate metrics.</p>
+          {% endif %}
+          <hr />
+          <p class="disclaimer">For project use and clinical decision support only. Final diagnosis must be made by medical professionals.</p>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>
